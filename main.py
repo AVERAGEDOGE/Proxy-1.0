@@ -1,11 +1,11 @@
-from flask import Flask, request
+from flask import Flask, request, Response
 import requests
 
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Railway Proxy Server is Running!"
+    return "Railway Proxy Server is Running! Use /proxy?url=YOUR_URL"
 
 @app.route('/proxy')
 def proxy():
@@ -14,8 +14,15 @@ def proxy():
         return "Usage: /proxy?url=http://example.com", 400
     
     try:
-        response = requests.get(url)
-        return response.content, response.status_code, response.headers.items()
+        # Forward request with headers
+        response = requests.get(url, headers={'User-Agent': request.headers.get('User-Agent')}, stream=True)
+
+        # Handle different content types correctly
+        excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+        headers = [(name, value) for name, value in response.headers.items() if name.lower() not in excluded_headers]
+
+        return Response(response.content, response.status_code, headers)
+    
     except Exception as e:
         return str(e), 500
 
