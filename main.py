@@ -1,12 +1,19 @@
 from flask import Flask, request, Response
 import requests
 from urllib.parse import urlparse, urljoin
+import re
 
 app = Flask(__name__)
 
+# Function to rewrite URLs inside HTML pages
+def rewrite_html(html_content, base_url):
+    html_content = re.sub(r'href="(/[^"]*)"', lambda m: f'href="/proxy?url={urljoin(base_url, m.group(1))}"', html_content)
+    html_content = re.sub(r'src="(/[^"]*)"', lambda m: f'src="/proxy?url={urljoin(base_url, m.group(1))}"', html_content)
+    return html_content
+
 @app.route('/')
 def home():
-    return "🚀 Railway Proxy is Running! Use /proxy?url=YOUR_URL"
+    return "🚀 Proxy is Running! Use /proxy?url=YOUR_URL"
 
 @app.route('/proxy')
 def proxy():
@@ -15,21 +22,21 @@ def proxy():
         return "Usage: /proxy?url=http://example.com", 400
     
     try:
-        # Forward request with headers and cookies
+        # Forward user headers & cookies
         headers = {key: value for key, value in request.headers if key.lower() not in ['host']}
         response = requests.get(url, headers=headers, cookies=request.cookies, stream=True)
 
-        # Rewrite HTML to fix links (so images, CSS, and JS load correctly)
+        # Detect content type
         content_type = response.headers.get('Content-Type', '')
         content = response.content
 
+        # If it's an HTML page, rewrite the links
         if 'text/html' in content_type:
             content = content.decode('utf-8')
-            content = content.replace('href="/', f'href="/proxy?url={urljoin(url, "/")}')
-            content = content.replace('src="/', f'src="/proxy?url={urljoin(url, "/")}')
+            content = rewrite_html(content, url)
             content = content.encode('utf-8')
 
-        # Remove certain headers that can cause issues
+        # Exclude problem headers
         excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
         headers = [(name, value) for name, value in response.headers.items() if name.lower() not in excluded_headers]
 
