@@ -32,15 +32,34 @@ def rewrite_links(content, target_url):
             lambda match: f'href="{base_url}{target_url.rstrip("/")}{match.group(1)}"',
             content
         )
-
-        # ✅ Fix Wikipedia search bar by rewriting form actions
+        
+        # Convert absolute CSS, JS, and image URLs into proxied links
         content = re.sub(
-            r'action="(/w/[^"]*)"',
-            lambda match: f'action="{base_url}{target_url.rstrip("/")}{match.group(1)}"',
+            r'url\((https?://[^\)]+)\)', 
+            lambda match: f'url({base_url}{match.group(1)})',
             content
         )
-
-        # ✅ Fix Wikipedia search form URL (for the main search bar)
+        
+        # Fix images, CSS, JS links to stay inside the proxy
+        content = re.sub(
+            r'(<link[^>]+href=")(https?://[^\"]+)(")', 
+            lambda match: f'{match.group(1)}{base_url}{match.group(2)}{match.group(3)}',
+            content
+        )
+        
+        content = re.sub(
+            r'(<script[^>]+src=")(https?://[^\"]+)(")', 
+            lambda match: f'{match.group(1)}{base_url}{match.group(2)}{match.group(3)}',
+            content
+        )
+        
+        content = re.sub(
+            r'(<img[^>]+src=")(https?://[^\"]+)(")', 
+            lambda match: f'{match.group(1)}{base_url}{match.group(2)}{match.group(3)}',
+            content
+        )
+        
+        # Fix Wikipedia search form URL (for the main search bar)
         content = re.sub(
             r'action="/([^"]+)"',
             lambda match: f'action="{base_url}{target_url.rstrip("/")}{match.group(1)}"',
