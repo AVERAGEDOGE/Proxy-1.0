@@ -64,7 +64,15 @@ async def fetch_url(url):
                 if "text/html" in content_type:
                     content = rewrite_links(content, url)
 
-                return Response(content, status=response.status, headers={"Content-Type": content_type})
+                # Ensure proper headers to render HTML correctly
+                headers = {
+                    "Content-Type": "text/html; charset=UTF-8",
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0"
+                }
+
+                return Response(content, status=response.status, headers=headers)
     
     except Exception as e:
         return Response(f"Error: {str(e)}", status=500)
