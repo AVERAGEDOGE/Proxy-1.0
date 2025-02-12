@@ -42,13 +42,13 @@ def rewrite_links(content, target_url):
 
         # ✅ Fix Wikipedia search form URL (for the main search bar)
         content = re.sub(
-            r'action="/wiki/([^"]+)"',
-            lambda match: f'action="{base_url}{target_url.rstrip("/")}/wiki/{match.group(1)}"',
+            r'action="/([^"]+)"',
+            lambda match: f'action="{base_url}{target_url.rstrip("/")}{match.group(1)}"',
             content
         )
 
         return content
-    except:
+    except Exception as e:
         return content
 
 async def fetch_url(url):
