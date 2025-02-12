@@ -2,6 +2,7 @@ from flask import Flask, request, Response
 import aiohttp
 import asyncio
 import random
+import re
 import os
 
 app = Flask(__name__)
@@ -13,14 +14,32 @@ USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
 ]
 
+# ✅ Fix broken links on Reddit & other sites by rewriting URLs
+def rewrite_links(content, target_url):
+    try:
+        base_url = "/proxy?url="
+        fixed_content = re.sub(
+            r'href="(/[^"]*)"', 
+            lambda match: f'href="{base_url}{target_url}{match.group(1)}"',
+            content
+        )
+        return fixed_content
+    except:
+        return content
+
 async def fetch_url(url):
     try:
         async with aiohttp.ClientSession() as session:
             headers = {"User-Agent": random.choice(USER_AGENTS)}
             
             async with session.get(url, headers=headers) as response:
-                content = await response.read()
+                content = await response.text()
                 content_type = response.headers.get("Content-Type", "text/html")
+                
+                # Rewrite links for Reddit & other sites
+                if "text/html" in content_type:
+                    content = rewrite_links(content, url)
+
                 return Response(content, status=response.status, headers={"Content-Type": content_type})
     
     except Exception as e:
