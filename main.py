@@ -13,7 +13,7 @@ USER_AGENTS = [
 
 @app.route("/")
 def home():
-    return "🚀 Upgraded Proxy is Running! Use /proxy?url=YOUR_URL"
+    return "🚀 Proxy is Running! Use /proxy?url=YOUR_URL"
 
 @app.route("/proxy")
 def proxy():
@@ -22,10 +22,18 @@ def proxy():
         return "Usage: /proxy?url=http://example.com", 400
     
     try:
-        headers = {"User-Agent": choice(USER_AGENTS)}
+        headers = {
+            "User-Agent": choice(USER_AGENTS),
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+        }
         response = requests.get(url, headers=headers, stream=True)
-        return Response(response.content, status=response.status_code, headers=dict(response.headers))
-    
+
+        # Fix: Ensure content type is correct
+        content_type = response.headers.get("Content-Type", "text/html")
+        
+        return Response(response.content, status=response.status_code, content_type=content_type)
+
     except Exception as e:
         return str(e), 500
 
