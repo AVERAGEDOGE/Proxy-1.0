@@ -14,22 +14,32 @@ USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
 ]
 
-# ✅ Rewrite links so they stay inside the proxy
+# ✅ Rewrite links and form actions to keep everything inside the proxy
 def rewrite_links(content, target_url):
     try:
         base_url = "/proxy?url="
+        
         # Convert absolute URLs (like https://en.wikipedia.org/page) into proxied links
         content = re.sub(
             r'href="https?://([^"]+)"', 
             lambda match: f'href="{base_url}https://{match.group(1)}"',
             content
         )
+        
         # Convert relative URLs (like /wiki/Example) into proxied links
         content = re.sub(
             r'href="(/[^"]*)"', 
             lambda match: f'href="{base_url}{target_url.rstrip("/")}{match.group(1)}"',
             content
         )
+
+        # ✅ Fix Wikipedia search bar by rewriting form actions
+        content = re.sub(
+            r'action="(/w/[^"]*)"',
+            lambda match: f'action="{base_url}{target_url.rstrip("/")}{match.group(1)}"',
+            content
+        )
+
         return content
     except:
         return content
@@ -43,7 +53,7 @@ async def fetch_url(url):
                 content = await response.text()
                 content_type = response.headers.get("Content-Type", "text/html")
                 
-                # Rewrite links so they stay inside the proxy
+                # Rewrite links & forms so they stay inside the proxy
                 if "text/html" in content_type:
                     content = rewrite_links(content, url)
 
