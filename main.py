@@ -22,7 +22,8 @@ async def fetch_url(url):
     async with aiohttp.ClientSession() as session:
         headers = {"User-Agent": random.choice(USER_AGENTS)}
         
-        proxy = random.choice(PROXY_LIST) if PROXY_LIST else None  # Use a proxy if available
+        async with session.get(url, headers=headers, proxy=proxy) as response:
+  # Use a proxy if available
         
         async with session.get(url, headers=headers, proxy=proxy) as response:
             content = await response.read()
