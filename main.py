@@ -14,23 +14,28 @@ USER_AGENTS = [
 ]
 
 async def fetch_url(url):
-    async with aiohttp.ClientSession() as session:
-        headers = {"User-Agent": random.choice(USER_AGENTS)}
-        
-        async with session.get(url, headers=headers) as response:
-            content = await response.read()
-            return Response(content, status=response.status, headers={"Content-Type": response.headers.get("Content-Type", "text/html")})
+    try:
+        async with aiohttp.ClientSession() as session:
+            headers = {"User-Agent": random.choice(USER_AGENTS)}
+            
+            async with session.get(url, headers=headers) as response:
+                content = await response.read()
+                content_type = response.headers.get("Content-Type", "text/html")
+                return Response(content, status=response.status, headers={"Content-Type": content_type})
+    
+    except Exception as e:
+        return Response(f"Error: {str(e)}", status=500)
 
 @app.route("/")
 def home():
     return "🚀 Proxy is Running! Use /proxy?url=YOUR_URL"
 
 @app.route("/proxy")
-async def proxy():
+def proxy():
     url = request.args.get("url")
     if not url:
         return "Usage: /proxy?url=http://example.com", 400
-    return await fetch_url(url)
+    return asyncio.run(fetch_url(url))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
