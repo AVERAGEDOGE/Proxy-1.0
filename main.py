@@ -1,22 +1,20 @@
-from flask import Flask, request
+from flask import Flask, request, Response
 import requests
 
 app = Flask(__name__)
 
-@app.route('/')
-def home():
-    return "Proxy is running! Use /proxy?url=your_url to access."
-
-@app.route('/proxy')
-def proxy():
-    url = request.args.get('url')
-    if not url:
-        return "Error: No URL provided", 400
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def proxy(path):
+    target_url = f"https://{path}" if "http" not in path else path
     try:
-        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-        return response.content, response.status_code, response.headers.items()
-    except requests.RequestException as e:
-        return f"Request failed: {e}", 500
+        resp = requests.get(target_url, headers=request.headers, stream=True)
+        response = Response(resp.content, resp.status_code)
+        for key, value in resp.headers.items():
+            response.headers[key] = value
+        return response
+    except requests.exceptions.RequestException:
+        return "Error: Could not connect to target site.", 500
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.getenv("PORT", 5000)))
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
